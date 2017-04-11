@@ -152,12 +152,13 @@ again:
 }
 
 /**
-显示当前目录文件*/
+get the content of the server's current path
+*/
 void ls(int sockfd) {
-	char *recvline;
+	char recvline[100];
 	int n;
 	//printf("comeing\n");
-	while ((n=read(sockfd, recvline, strlen(recvline)+1)) > 0) {
+	while ((n=recv(sockfd, recvline, /*strlen(recvline)+1)*/100,0)) > 0) {
 		printf("%s", recvline);
 	}
 	printf("%d\n", n);
@@ -209,12 +210,12 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		send(sockfd, strname, 20, 0);
 		upload(strname, sockfd);
 		return;
-	}
+	}/*
 	else
 	{
 		printf("error:");
 		return;
-	}
+	}*/
 
 }
 

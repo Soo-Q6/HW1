@@ -13,7 +13,7 @@
 #define serv_port 8888
 #define LISTENQ 1024
 #define MAXLINE 2048
-void str_echo(int sockfd);
+//void str_echo(int sockfd);
 void download(const char* filename, int sockfd);
 void upload(const char* filename, int sockdf);
 void sig_chid(int signo);
@@ -169,13 +169,16 @@ void upload(const char* filename, int sockfd) {
 	//exit(0);
 	return;
 }
+/**
+display the files of the current path from server, 
+send the contents to client.
+*/
 void ls( char* path,int connfd) {
 	//char* sendline;
 	//int sendLen;
 	//path = "/mnt/d/CC/HW3/HW1/HW1";
 	struct dirent* ent = NULL;
 	DIR *pDir;
-	//printf("comeing\n");
   
 	if ((pDir = opendir(path)) == NULL)
 	{
@@ -187,15 +190,18 @@ void ls( char* path,int connfd) {
 	{
 		printf("open %s successfully\n", path);
 	}
+
+
 	int n;
 	while ((ent = readdir(pDir)) != NULL)
 	{ 
+		
 		//printf("%s  %d", ent->d_name, ));
 		//sendline = strcat(ent->d_name, "_");
 		//sendLen = strlen(sendline);
 		printf("%s  %d", ent->d_name, strlen(ent->d_name));
 		n=write(connfd, ent->d_name , strlen(ent->d_name));
-		printf("%d\n", n);
+		//printf("%d\n", n);
 		if (n<0)
 		{
 			printf("write error: %s (errno:%d)", strerror(errno), errno);
@@ -203,7 +209,7 @@ void ls( char* path,int connfd) {
 		}
 	}  
 	closedir(pDir);
-	exit(0);
+	//exit(0);
 	return;
 }
 

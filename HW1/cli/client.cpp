@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 			exit(0);
 		}
 		bzero(&servaddr, sizeof(servaddr));
-		servaddr.sin_family = PF_INET;                   //change from AF_INET to PF_INET
+		servaddr.sin_family = AF_INET;                   //change from AF_INET to PF_INET
 		servaddr.sin_port = htons(SERV_PORT);
 		inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
 
@@ -40,18 +40,23 @@ int main(int argc, char **argv) {
 			exit(0);
 		}
 		
-		char path[100];
+		char path[100]={'\0'};
 		int n=recv(sockfd, path, 100,0);   //接受服务器当前地址 done.
+		//strcpy(path,"/mnt/d/Desktop/Visual Studio 2015/Projects/HW1/HW1");
+		printf("%s %d %lu\n",path,n,strlen(path));
 		
 		while (1)
 		{
-			printf("%s>", path);
+			printf("%s/>", path);
 			char str[10];
 			char strname[20];
-			scanf("%s", &str);
+			scanf("%s", str);
 			//write(sockfd, str, 10);
 			//printf("the str is %s\n", str);
-			send(sockfd, str, 10, 0);           //传指令 done.
+			int i=send(sockfd, str, 10, 0);           //传指令 done.
+			if(i>0){
+				printf("com sending successfully\n");
+			}
 			if (strcmp(str, "ls") == 0)
 			{
 				//ls(sockfd);
@@ -61,7 +66,7 @@ int main(int argc, char **argv) {
 			}
 			else if (Iscmd(str))
 			{
-				scanf("%s", &strname);
+				scanf("%s", strname);
 				cmd_Up(sockfd,str, strname,path);
 			}
 			else if (strcmp(str,"exit")==0)
@@ -106,14 +111,14 @@ void download(const char* filename, int sockfd) {
 	}
 	ssize_t n;
 	again:
-	while ((n=read(sockfd,recvline,MAXLINE))!=0)
+	while ((n=read(sockfd,recvline,MAXLINE))>0)
 	{
 		//fputs(recvline, stdout);
 		//printf("%d", /*strlen(recvline)*/n);
 		//printf("%s\n", recvline);
 		fwrite(recvline, 1, /*strlen(recvline)*/n, fp);
 	}
-	printf("%d\n",n);
+	printf("%ld\n",n);
 	if (n < 0 && errno == EINTR)
 		goto again;
 	else if (n < 0)
@@ -131,12 +136,11 @@ void upload(const char* filename, int sockfd) {
 	FILE *fp;
 	ssize_t n;
 	char buf[MAXLINE];
-	if ((fp = fopen(filename, "r")) == NULL)
-	{
+	if ((fp = fopen(filename, "r")) == NULL){
 		printf("cannot open file!");
 		exit(0);
 	}
-again:
+	again:
 	while ((n = fread(buf, 1, MAXLINE, fp))>0) {
 		write(sockfd, buf, n);
 	}
@@ -157,8 +161,8 @@ get the content of the server's current path
 void ls(int sockfd) {
 	char recvline[100];
 	int n;
-	//printf("comeing\n");
-	while ((n=recv(sockfd, recvline, /*strlen(recvline)+1)*/100,0)) > 0) {
+	//printf("comeing and recvline's strlen:%d\n",strlen(recvline));
+	if ((n=recv(sockfd, recvline, 100, 0)) >= 0) {
 		printf("%s", recvline);
 	}
 	printf("%d\n", n);
@@ -171,8 +175,7 @@ void ls(int sockfd) {
 	return;
 }
 
-int Iscmd(char cmd[10])
-{
+int Iscmd(char cmd[10]){
 	//	int i;
 	if (!strcmp(cmd, "cd") || !strcmp(cmd, "cdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
 		return 1;
@@ -185,14 +188,14 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		int n;
 		send(sockfd, strname, 20, 0);
 		//printf("%s %s\n", str, strname);
-		n=read(sockfd, path, strlen(path));
-		if (n<0)
+		n=read(sockfd, path, 100);
+		if (n<=0)
 		{
 			printf("new path read error!\n");
 		}
 		else
 		{
-			printf("the new path is %s\n", path);
+			printf("the new path is %s  %lu\n", path,strlen(path));
 		}
 		return;
 	}

@@ -13,6 +13,7 @@
 #define serv_port 8888
 #define LISTENQ 1024
 #define MAXLINE 2048
+#define PATH_LENGTH 100
 //void str_echo(int sockfd);
 void download(const char* filename, int sockfd);
 void upload(const char* filename, int sockdf);
@@ -74,13 +75,14 @@ int main()
 		if ((childpid = fork()) == 0) {
 			close(listenid);
 
-			//char *path = getcwd(NULL,NULL);
-			char path[100];
-			getcwd(path,sizeof(path));
+			// //char *path = getcwd(NULL,NULL);
+			 char path[PATH_LENGTH];
+			 getcwd(path,sizeof(path));
 			send(connfd, path, strlen(path),0);      //发送当前地址 done.
 			
 			while (1)
 			{
+				printf("waiting for new commander!\n");
 				char str[10] = { '\0' };
 				char strname[20] = { '\0' };
 				recv(connfd, str, 10, 0);         //获取指令 done.
@@ -179,11 +181,9 @@ display the files of the current path from server,
 send the contents to client.
 */
 void ls( char* path,int connfd) {
-	strcpy(path, "/mnt/d/Desktop");
-	printf("open %s \n", path);
 	struct dirent* ent = NULL;
 	DIR *pDir;
-	printf("the ls wait starting\n");
+	//printf("the ls wait starting\n");
   
 	if ((pDir = opendir(path)) == NULL)
 	{
@@ -198,19 +198,20 @@ void ls( char* path,int connfd) {
 
 
 	int n;
-	printf("the ls starting\n");
+	//printf("the ls starting\n");
 	while ((ent = readdir(pDir)) != NULL)
 	{ 
 		printf("%s  %lu", ent->d_name, strlen(ent->d_name));
-		n=write(connfd, ent->d_name , strlen(ent->d_name));
+		//n=write(connfd, ent->d_name , strlen(ent->d_name));
+		//n=write(connfd,)
 		//printf("%d\n", n);
-		if (n<0)
+		if (write(connfd, ent->d_name , strlen(ent->d_name))<0)
 		{
 			printf("write error: %s (errno:%d)", strerror(errno), errno);
 			exit(0);
 		}
 	}
-	printf("done\n");  
+	//printf("done\n");  
 	closedir(pDir);
 	//exit(0);
 	return;
@@ -227,10 +228,19 @@ int Iscmd(char cmd[10])
 
 void cmd_Up(int connfd, char str[10], char strname[20],char* path) {
 	if (strcmp(str, "cd") == 0) {
-		strcpy(path,changedir(strname));
-		printf("the new path is %s %lu\n", path,strlen(path));
-		int n=write(connfd, path, strlen(path));
-		printf("the writing length is :%d\n",n);
+		char path_tmp[PATH_LENGTH];
+		strcpy(path_tmp,changedir(strname));
+		//path_tmp=changedir(strname);
+		if(path_tmp==NULL){
+			printf("error:%lu\n",strlen(path_tmp));
+			write(connfd,path_tmp,strlen(path_tmp));
+		}
+		else{
+			strcpy(path,changedir(strname));
+			//printf("the new path is %s %lu\n", path,strlen(path));
+			int n=write(connfd, path, strlen(path));
+			//printf("the writing length is :%d\n",n);
+		}
 		return;
 	}
 	else if (strcmp(str, "download") == 0)
@@ -268,14 +278,15 @@ void sig_chid(int signo) {
 
 char* changedir(const char* strname) {
 	int n;
-	char* path;
+	char path[PATH_LENGTH];
 	n=chdir(strname);
 	if (n!=0)
 	{
 		printf("change dir error: %s (errno:%d)\n", strerror(errno), errno);
-		exit(0);
+		return NULL;
+		//exit(0);
 	}
-	getcwd(path, 100);
+	getcwd(path, PATH_LENGTH);
 	return path;
 }
 

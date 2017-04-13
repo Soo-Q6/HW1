@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 		char path[100]={'\0'};
 		int n=recv(sockfd, path, 100,0);   //接受服务器当前地址 done.
 		//strcpy(path,"/mnt/d/Desktop/Visual Studio 2015/Projects/HW1/HW1");
-		printf("%s %d %lu\n",path,n,strlen(path));
+		//printf("%s %d %lu\n",path,n,strlen(path));
 		
 		while (1)
 		{
@@ -53,21 +53,19 @@ int main(int argc, char **argv) {
 			scanf("%s", str);
 			//write(sockfd, str, 10);
 			//printf("the str is %s\n", str);
-			int i=send(sockfd, str, 10, 0);           //传指令 done.
-			if(i>0){
-				printf("com sending successfully\n");
-			}
+			send(sockfd, str, 10, 0);           //传指令 done.
 			if (strcmp(str, "ls") == 0)
 			{
 				//ls(sockfd);
 				//printf("ls  %s\n", str);
 				ls(sockfd);
-				printf("ls done??\n");
+				//printf("ls done??\n");
 			}
 			else if (Iscmd(str))
 			{
 				scanf("%s", strname);
 				cmd_Up(sockfd,str, strname,path);
+				printf("after cmd_up the new path is %s\n",path);
 			}
 			else if (strcmp(str,"exit")==0)
 			{
@@ -83,7 +81,7 @@ int main(int argc, char **argv) {
 
 
 
-		//ls(sockfd);
+		ls(sockfd);
 		//download("text_download", sockfd);
 		//exit(0);
 		return 0;
@@ -160,17 +158,26 @@ get the content of the server's current path
 */
 void ls(int sockfd) {
 	char recvline[100];
-	int n;
-	//printf("comeing and recvline's strlen:%d\n",strlen(recvline));
-	if ((n=recv(sockfd, recvline, 100, 0)) >= 0) {
-		printf("%s", recvline);
-	}
-	printf("%d\n", n);
-	if (n<0)
-	{
-		printf("read error: %s (errno:%d)\n", strerror(errno), errno);
-	}
-	printf("\n");
+	int n=1;
+	printf("comeing and recvline's strlen:%d  %d\n",strlen(recvline),sizeof(recvline));
+	// if ((n=recv(sockfd, recvline, sizeof(recvline), 0)) >= 0) {
+	// 	printf("%s", recvline);
+	// }
+	// while(recv(sockfd,recvline,sizeof(recvline),0)){
+	// 	printf("%s\t", recvline);
+	// 	//printf("the recv size is:%d\n",n);
+	// };
+	do{
+		n=recv(sockfd,recvline,sizeof(recvline),0);
+		printf("%s\t",recvline);
+	}while(n>0);
+	
+	//printf("%d\n", n);
+	// if (n<0)
+	// {
+	// 	printf("read error: %s (errno:%d)\n", strerror(errno), errno);
+	// }
+	// printf("\n");
 	//exit(0);
 	return;
 }

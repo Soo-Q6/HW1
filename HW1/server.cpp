@@ -18,10 +18,10 @@
 void download(const char* filename, int sockfd);
 void upload(const char* filename, int sockdf);
 void sig_chid(int signo);
-void ls(char* path,int connfd);
+void ls(char* path, int connfd);
 char* changedir(const char* path);
 int Iscmd(char cmd[10]);
-void cmd_Up(int connfd, char str[10], char strname[20],char* path);
+void cmd_Up(int connfd, char str[10], char strname[20], char* path);
 int main()
 {
 	int listenid, connfd;
@@ -53,7 +53,7 @@ int main()
 		printf("waiting for new connection\n");
 	}
 
-	if (signal(SIGCHLD, sig_chid)<0) {
+	if (signal(SIGCHLD, sig_chid) < 0) {
 		printf("%s,%d", strerror(errno), errno);
 	}
 
@@ -61,7 +61,7 @@ int main()
 		clilen = sizeof(cliaddr);
 		connfd = accept(listenid, (struct sockaddr*)&cliaddr, &clilen);
 		//printf("%d\n", connfd);
-		if (connfd <0) {
+		if (connfd < 0) {
 			if (errno == EINTR)
 				continue;
 			else {
@@ -70,31 +70,28 @@ int main()
 			}
 		}
 
-		getpeername(connfd,(struct sockaddr*)&cliaddr,&clilen);
-		printf("connection form:%s  port:%d\n",inet_ntoa(cliaddr.sin_addr),ntohs(cliaddr.sin_port));
+		getpeername(connfd, (struct sockaddr*)&cliaddr, &clilen);
+		printf("connection form:%s  port:%d\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
 		if ((childpid = fork()) == 0) {
 			close(listenid);
+			char path[PATH_LENGTH];
+			getcwd(path, sizeof(path));
+			send(connfd, path, strlen(path), 0);      //发送当前地址 done.
 
-			// //char *path = getcwd(NULL,NULL);
-			 char path[PATH_LENGTH];
-			 getcwd(path,sizeof(path));
-			send(connfd, path, strlen(path),0);      //发送当前地址 done.
-			
 			while (1)
 			{
-				//printf("waiting for new commander!\n");
+				printf("waiting for new commander\n");
 				char str[10] = { '\0' };
 				char strname[20] = { '\0' };
 				recv(connfd, str, 10, 0);         //获取指令 done.
-				//printf("cmd is %s\n", str);
+				//printf("the str is %s\n", str);
 				if (strcmp(str, "ls") == 0)
 				{
-					ls(path,connfd);
-					//printf(" done1\n");
+					ls(path, connfd);
 				}
 				else if (strcmp(str, "exit") == 0)
 				{
-					printf("disconnection form:%s  port:%d\n",inet_ntoa(cliaddr.sin_addr),ntohs(cliaddr.sin_port));
+					printf("disconnection form:%s  port:%d\n", inet_ntoa(cliaddr.sin_addr), ntohs(cliaddr.sin_port));
 					close(connfd);
 					exit(0);
 					break;
@@ -103,9 +100,8 @@ int main()
 				else if (Iscmd(str))
 				{
 					recv(connfd, strname, 20, 0);
-					//printf("strname is %s\n", strname);
-					cmd_Up(connfd,str, strname,path);
-					//printf("after cme_up, the new path is:%s\n",path);
+					printf("%s  %s\n", str, strname);
+					cmd_Up(connfd, str, strname, path);
 				}
 				else
 				{
@@ -126,31 +122,28 @@ int main()
 }
 
 
-void download(const char* filename,int sockfd) {
+void download(const char* filename, int sockfd) {
 	FILE *fp;
 	ssize_t n;
 	char buf[MAXLINE];
+	int childsockfd;
 	//struct sockaddr_in clientaddr;
 	//socklen_t clientLen = sizeof(clientaddr);
-	if ((fp=fopen(filename,"r"))==NULL){
+	if ((fp = fopen(filename, "r")) == NULL) {
 		printf("cannot open file!");
 		exit(0);
 	}
-	again:
-	while ((n = fread(buf,1,MAXLINE,fp))>0) {
-		//printf("%d %s", n, buf);
-		//buf[n]='\0';
-		write(sockfd, buf, n);
-		//getpeername(sockfd,(struct sockaddr*)&clientaddr,&clientLen);
-		//printf("connection form:%s  port:%d\n",inet_ntoa(clientaddr.sin_addr),ntohs(clientaddr.sin_port));
-
+again:
+	while ((n = fread(buf, 1, MAXLINE, fp)) > 0) {
+		write(sockfd, buf, n);    //change
 	}
-	fclose(fp);
-	if (n<0 && errno == EINTR)
+	if (n < 0 && errno == EINTR)
 		goto again;
-	else if (n<0)
+	else if (n < 0)
 		printf("str_echo:read error");
+	shutdown(sockfd, SHUT_WR);   //change
 	//exit(0);
+	fclose(fp);
 	return;
 }
 
@@ -164,12 +157,19 @@ void upload(const char* filename, int sockfd) {
 		printf("open file error\n");
 		exit(0);
 	}
-	while ((n = read(sockfd, recvline, MAXLINE)) != 0)
+	again:
+	while ((n = read(sockfd, recvline, MAXLINE)) > 0)
 	{
 		//fputs(recvline, stdout);
 		//printf("%d", /*strlen(recvline)*/n);
 		fwrite(recvline, 1, /*strlen(recvline)*/n, fp);
 	}
+	if (n < 0 && errno == EINTR)
+		goto again;
+	else if (n < 0)
+		printf("read error");
+	else
+		printf("Download Complete!\n");
 	fclose(fp);
 	//exit(0);
 	return;
@@ -177,80 +177,63 @@ void upload(const char* filename, int sockfd) {
 
 
 /**
-display the files of the current path from server, 
+display the files of the current path from server,
 send the contents to client.
 */
-void ls( char* path,int connfd) {
+void ls(char* path, int connfd) {
 	struct dirent* ent = NULL;
 	DIR *pDir;
 	char sendline[100] = { '\0' };
 	if ((pDir = opendir(path)) == NULL)
 	{
 		printf("cannot open direactory.");
-		exit(0);
-		return ;
-	} 
-	else
-	{
-		printf("open %s successfully\n", path);
+		write(connfd, sendline, 2);
+		//exit(0);
+		return;
 	}
-
-
-	int n;
-	//printf("the ls starting\n");
 	while ((ent = readdir(pDir)) != NULL)
-	{ 
-		//printf("%s  %lu", ent->d_name, strlen(ent->d_name));
-		//n=write(connfd, ent->d_name , strlen(ent->d_name));
-		//n=write(connfd,)
-		//printf("%d\n", n);
+	{
 		strcpy(sendline, ent->d_name);
-		//printf("%s %lu\n", sendline, sizeof(sendline));
-		//if (write(connfd, ent->d_name , strlen(ent->d_name))<0)
-		if(write(connfd,sendline,sizeof(sendline))<0)
+		if (write(connfd, sendline, sizeof(sendline)) < 0)
 		{
 			printf("write error: %s (errno:%d)", strerror(errno), errno);
 			exit(0);
 		}
-		//sleep(1);
 	}
-	//strcpy(sendline,"")
 	write(connfd, sendline, 1);
-	//printf("done\n");  
 	closedir(pDir);
-	//exit(0);
 	return;
 }
 
 int Iscmd(char cmd[10])
 {
-	//	int i;
 	if (!strcmp(cmd, "cd") || !strcmp(cmd, "cdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
 		return 1;
 	else
 		return 0;
 }
 
-void cmd_Up(int connfd, char str[10], char strname[20],char* path) {
+void cmd_Up(int connfd, char str[10], char strname[20], char* path) {
+	//printf("%s\n", path);
 	if (strcmp(str, "cd") == 0) {
 		char path_tmp[PATH_LENGTH];
-		strcpy(path_tmp,changedir(strname));
-		if(path_tmp==NULL){
-			printf("error:%lu\n",strlen(path_tmp));
-			write(connfd,path_tmp,strlen(path_tmp));
+		strcpy(path_tmp, changedir(strname));
+		printf("%s\n", path_tmp);
+		if (strcmp(path_tmp, "error") == 0) {
+			//printf("error:%lu\n",strlen(path_tmp));
+			write(connfd, path_tmp, 1);
 		}
-		else{
-			//strcpy(path,changedir(strname));
+		else {
 			strcpy(path, path_tmp);
-			//printf("the new path is %s %lu\n", path,strlen(path));
-			int n=write(connfd, path, strlen(path));
-			//printf("the writing length is :%d\n",n);
+			printf("the new path is %s %lu\n", path, strlen(path));
+			int n = write(connfd, path, strlen(path));
+			printf("the writing length is :%d\n", n);
 		}
 		return;
 	}
 	else if (strcmp(str, "download") == 0)
 	{
-		//printf("%s %s\n", str, strname);
+		printf("%s %s\n", str, strname);
 		//recv(connfd, str, 10, 0);
 		download(strname, connfd);
 		return;
@@ -274,7 +257,7 @@ void cmd_Up(int connfd, char str[10], char strname[20],char* path) {
 void sig_chid(int signo) {
 	pid_t pid;
 	int stat;
-	while ((pid = waitpid(-1, &stat, WNOHANG))>0)
+	while ((pid = waitpid(-1, &stat, WNOHANG)) > 0)
 		//pid=waitpid(&stat);
 		printf("child:%d terminated", pid);
 	return;
@@ -284,11 +267,11 @@ void sig_chid(int signo) {
 char* changedir(const char* strname) {
 	int n;
 	char path[PATH_LENGTH];
-	n=chdir(strname);
-	if (n!=0)
+	n = chdir(strname);
+	if (n != 0)
 	{
 		printf("change dir error: %s (errno:%d)\n", strerror(errno), errno);
-		return NULL;
+		return "error";
 		//exit(0);
 	}
 	getcwd(path, PATH_LENGTH);

@@ -99,7 +99,7 @@ void download(const char* filename, int sockfd) {
 		printf("open file error\n");
 		exit(0);
 	}
-	ssize_t n;
+	ssize_t n=2;
 	again:
 	while ((n=read(sockfd,recvline,MAXLINE))>0)
 	{
@@ -108,7 +108,6 @@ void download(const char* filename, int sockfd) {
 		//printf("%s\n", recvline);
 		fwrite(recvline, 1, /*strlen(recvline)*/n, fp);
 	}
-	printf("%ld\n",n);
 	if (n < 0 && errno == EINTR)
 		goto again;
 	else if (n < 0)
@@ -116,7 +115,6 @@ void download(const char* filename, int sockfd) {
 	else
 		printf("Download Complete!\n");
 	fclose(fp);
-	//exit(0);
 	return;
 }
 
@@ -141,6 +139,7 @@ void upload(const char* filename, int sockfd) {
 		printf("read error");
 	else
 		printf("Upload Complete!\n");
+	shutdown(sockfd, SHUT_WR);
 	//exit(0);
 	return;
 }
@@ -151,8 +150,6 @@ get the content of the server's current path
 void ls(int sockfd) {
 	char recvline[100] = { '\0' };
 	int n=100;
-	//printf("comeing and recvline's strlen:%d  %d\n",strlen(recvline),sizeof(recvline));
-	//sleep(10);
 	for(;n==100;)
 	{
 		n=read(sockfd, recvline, 100);
@@ -160,38 +157,15 @@ void ls(int sockfd) {
 		{
 			printf("%s\t", recvline);
 		}
+		else if(n==2)
+		{
+			printf("cannot open this direactory!\n");
+		}
 		else
 		{
 			printf("\n");
 		}
 	}
-	//while (1) {
-	//	if ((n=recv(sockfd, recvline, sizeof(recvline), 0)) > 0) {
-	// 		printf("%s", recvline);
-	//	}
-	//	else
-	//	{
-	//		break;
-	//	}
-
-	//}
-	 //while(recv(sockfd,recvline,sizeof(recvline),0)>0){
-	 //	printf("%s\t", recvline);
-	 //	//printf("the recv size is:%d\n",n);
-	 //};
-	//do{
-	//	sleep(10);
-	//	n=read(sockfd,recvline,sizeof(recvline));
-	//	printf("%s\t",recvline);
-	//}while(n>0);
-	
-	//printf("%d\n", n);
-	// if (n<0)
-	// {
-	// 	printf("read error: %s (errno:%d)\n", strerror(errno), errno);
-	// }
-	// printf("\n");
-	//exit(0);
 	return;
 }
 
@@ -206,17 +180,18 @@ int Iscmd(char cmd[10]){
 void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 	if (strcmp(str, "cd") == 0) {
 		int n;
+		char recvline[100];
 		send(sockfd, strname, 20, 0);
 		//printf("%s %s\n", str, strname);
-		n=read(sockfd, path, 100);
-		if (n<=0)
+		n=read(sockfd, recvline, 100);
+		if (n==1)
 		{
 			printf("new path read error!\n");
-		}/*
+		}
 		else
 		{
-			printf("the new path is %s  %lu\n", path,strlen(path));
-		}*/
+			strcpy(path, recvline);
+		}
 		return;
 	}
 	else if (strcmp(str,"download")==0)

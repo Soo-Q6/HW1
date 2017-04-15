@@ -31,9 +31,10 @@ int main(int argc, char **argv) {
 			exit(0);
 		}
 		bzero(&servaddr, sizeof(servaddr));
-		servaddr.sin_family = AF_INET;                   //change from AF_INET to PF_INET
+		servaddr.sin_family = PF_INET;                   //change from AF_INET to PF_INET
 		servaddr.sin_port = htons(SERV_PORT);
-		inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
+		//inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
+		inet_pton(AF_INET, "192.168.50.93", &servaddr.sin_addr);
 
 		if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
 			printf("connect error :%s (errno:%d)\n", strerror(errno), errno);
@@ -42,8 +43,6 @@ int main(int argc, char **argv) {
 		
 		char path[100]={'\0'};
 		int n=recv(sockfd, path, 100,0);   //接受服务器当前地址 done.
-		//strcpy(path,"/mnt/d/Desktop/Visual Studio 2015/Projects/HW1/HW1");
-		//printf("%s %d %lu\n",path,n,strlen(path));
 		
 		while (1)
 		{
@@ -51,26 +50,19 @@ int main(int argc, char **argv) {
 			char str[10];
 			char strname[20];
 			scanf("%s", str);
-			//write(sockfd, str, 10);
-			//printf("the str is %s\n", str);
 			send(sockfd, str, 10, 0);           //传指令 done.
 			if (strcmp(str, "ls") == 0)
 			{
-				//ls(sockfd);
-				//printf("ls  %s\n", str);
 				ls(sockfd);
-				//printf("ls done??\n");
 			}
 			else if (Iscmd(str))
 			{
 				scanf("%s", strname);
 				cmd_Up(sockfd,str, strname,path);
-				printf("after cmd_up the new path is %s\n",path);
+				//printf("after cmd_up the new path is %s\n",path);
 			}
 			else if (strcmp(str,"exit")==0)
 			{
-				//send(sockfd, str, 10, 0);
-				//return 0;
 				exit(0);
 			}
 			else
@@ -81,7 +73,7 @@ int main(int argc, char **argv) {
 
 
 
-		ls(sockfd);
+		//ls(sockfd);
 		//download("text_download", sockfd);
 		//exit(0);
 		return 0;
@@ -157,20 +149,41 @@ void upload(const char* filename, int sockfd) {
 get the content of the server's current path
 */
 void ls(int sockfd) {
-	char recvline[100];
-	int n=1;
-	printf("comeing and recvline's strlen:%d  %d\n",strlen(recvline),sizeof(recvline));
-	// if ((n=recv(sockfd, recvline, sizeof(recvline), 0)) >= 0) {
-	// 	printf("%s", recvline);
-	// }
-	// while(recv(sockfd,recvline,sizeof(recvline),0)){
-	// 	printf("%s\t", recvline);
-	// 	//printf("the recv size is:%d\n",n);
-	// };
-	do{
-		n=recv(sockfd,recvline,sizeof(recvline),0);
-		printf("%s\t",recvline);
-	}while(n>0);
+	char recvline[100] = { '\0' };
+	int n=100;
+	//printf("comeing and recvline's strlen:%d  %d\n",strlen(recvline),sizeof(recvline));
+	//sleep(10);
+	for(;n==100;)
+	{
+		n=read(sockfd, recvline, 100);
+		if (n==100)
+		{
+			printf("%s\t", recvline);
+		}
+		else
+		{
+			printf("\n");
+		}
+	}
+	//while (1) {
+	//	if ((n=recv(sockfd, recvline, sizeof(recvline), 0)) > 0) {
+	// 		printf("%s", recvline);
+	//	}
+	//	else
+	//	{
+	//		break;
+	//	}
+
+	//}
+	 //while(recv(sockfd,recvline,sizeof(recvline),0)>0){
+	 //	printf("%s\t", recvline);
+	 //	//printf("the recv size is:%d\n",n);
+	 //};
+	//do{
+	//	sleep(10);
+	//	n=read(sockfd,recvline,sizeof(recvline));
+	//	printf("%s\t",recvline);
+	//}while(n>0);
 	
 	//printf("%d\n", n);
 	// if (n<0)
@@ -199,11 +212,11 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		if (n<=0)
 		{
 			printf("new path read error!\n");
-		}
+		}/*
 		else
 		{
 			printf("the new path is %s  %lu\n", path,strlen(path));
-		}
+		}*/
 		return;
 	}
 	else if (strcmp(str,"download")==0)

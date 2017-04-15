@@ -36,7 +36,7 @@ int main()
 	}
 
 	bzero(&servaddr, sizeof(servaddr));
-	servaddr.sin_family = AF_INET;
+	servaddr.sin_family = PF_INET;
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	servaddr.sin_port = htons(serv_port);
 
@@ -82,11 +82,11 @@ int main()
 			
 			while (1)
 			{
-				printf("waiting for new commander!\n");
+				//printf("waiting for new commander!\n");
 				char str[10] = { '\0' };
 				char strname[20] = { '\0' };
 				recv(connfd, str, 10, 0);         //»ñÈ¡Ö¸Áî done.
-				printf("cmd is %s\n", str);
+				//printf("cmd is %s\n", str);
 				if (strcmp(str, "ls") == 0)
 				{
 					ls(path,connfd);
@@ -103,9 +103,9 @@ int main()
 				else if (Iscmd(str))
 				{
 					recv(connfd, strname, 20, 0);
-					printf("strname is %s\n", strname);
+					//printf("strname is %s\n", strname);
 					cmd_Up(connfd,str, strname,path);
-					printf("after cme_up, the new path is:%s\n",path);
+					//printf("after cme_up, the new path is:%s\n",path);
 				}
 				else
 				{
@@ -183,8 +183,7 @@ send the contents to client.
 void ls( char* path,int connfd) {
 	struct dirent* ent = NULL;
 	DIR *pDir;
-	//printf("the ls wait starting\n");
-  
+	char sendline[100] = { '\0' };
 	if ((pDir = opendir(path)) == NULL)
 	{
 		printf("cannot open direactory.");
@@ -201,16 +200,22 @@ void ls( char* path,int connfd) {
 	//printf("the ls starting\n");
 	while ((ent = readdir(pDir)) != NULL)
 	{ 
-		printf("%s  %lu", ent->d_name, strlen(ent->d_name));
+		//printf("%s  %lu", ent->d_name, strlen(ent->d_name));
 		//n=write(connfd, ent->d_name , strlen(ent->d_name));
 		//n=write(connfd,)
 		//printf("%d\n", n);
-		if (write(connfd, ent->d_name , strlen(ent->d_name))<0)
+		strcpy(sendline, ent->d_name);
+		//printf("%s %lu\n", sendline, sizeof(sendline));
+		//if (write(connfd, ent->d_name , strlen(ent->d_name))<0)
+		if(write(connfd,sendline,sizeof(sendline))<0)
 		{
 			printf("write error: %s (errno:%d)", strerror(errno), errno);
 			exit(0);
 		}
+		//sleep(1);
 	}
+	//strcpy(sendline,"")
+	write(connfd, sendline, 1);
 	//printf("done\n");  
 	closedir(pDir);
 	//exit(0);
@@ -230,13 +235,13 @@ void cmd_Up(int connfd, char str[10], char strname[20],char* path) {
 	if (strcmp(str, "cd") == 0) {
 		char path_tmp[PATH_LENGTH];
 		strcpy(path_tmp,changedir(strname));
-		//path_tmp=changedir(strname);
 		if(path_tmp==NULL){
 			printf("error:%lu\n",strlen(path_tmp));
 			write(connfd,path_tmp,strlen(path_tmp));
 		}
 		else{
-			strcpy(path,changedir(strname));
+			//strcpy(path,changedir(strname));
+			strcpy(path, path_tmp);
 			//printf("the new path is %s %lu\n", path,strlen(path));
 			int n=write(connfd, path, strlen(path));
 			//printf("the writing length is :%d\n",n);

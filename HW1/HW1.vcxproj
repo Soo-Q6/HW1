@@ -110,8 +110,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cli\cli.cpp" />
     <ClCompile Include="cli\client.cpp" />
     <ClCompile Include="server.cpp" />
+    <ClCompile Include="ser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cli\cli.h" />
+    <ClInclude Include="ser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

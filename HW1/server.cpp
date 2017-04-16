@@ -4,6 +4,7 @@
 #include<unistd.h>   
 #include<signal.h>
 #include<arpa/inet.h>
+#include<sys/stat.h>
 #include<stdio.h>
 #include<sys/types.h>
 #include<dirent.h>
@@ -211,7 +212,7 @@ void ls(char* path, int connfd) {
 
 int Iscmd(char cmd[10])
 {
-	if (!strcmp(cmd, "cd") || !strcmp(cmd, "cdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
+	if (!strcmp(cmd, "cd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
 		return 1;
 	else
 		return 0;
@@ -243,6 +244,11 @@ void cmd_Up(int connfd, char str[10], char strname[20], char* path) {
 	else if (strcmp(str, "upload") == 0)
 	{
 		upload(strname, connfd);
+		return;
+	}
+	else if(strcmp(str,"mkdir")==0)
+	{
+		mkdir(strname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 		return;
 	}
 	else

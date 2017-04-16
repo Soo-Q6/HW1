@@ -168,7 +168,7 @@ void ls(int sockfd) {
 }
 
 int Iscmd(char cmd[10]){
-	if (!strcmp(cmd, "cd") || !strcmp(cmd, "cdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
+	if (!strcmp(cmd, "cd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
 		return 1;
 	else
 		return 0;
@@ -204,6 +204,17 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		send(sockfd, strname, 20, 0);
 		upload(strname, sockfd);
 		return;
+	}
+	else if(strcmp(str,"mkdir")==0)
+	{
+		printf("%s %s\n", str, strname);
+		send(sockfd, strname, 20, 0);
+		printf("create dir %s successfuly\n", strname);
+		return;
+	}
+	else
+	{
+		printf("error\n");
 	}
 }
 

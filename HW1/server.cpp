@@ -10,7 +10,7 @@
 #include<netinet/in.h>
 #include<stdlib.h>
 #include<errno.h>
-#define serv_port 8888
+//#define serv_port 8888
 #define LISTENQ 1024
 #define MAXLINE 2048
 #define PATH_LENGTH 100
@@ -21,13 +21,19 @@ void ls(char* path, int connfd);
 char* changedir(const char* path);
 int Iscmd(char cmd[10]);
 void cmd_Up(int connfd, char str[10], char strname[20], char* path);
-int main()
+int main(int argc,char **argv)
 {
 	int listenid, connfd;
 	pid_t childpid;
 	socklen_t clilen;
+	int serv_port;
 	//char* path;
 	struct sockaddr_in cliaddr, servaddr;
+	if (argc != 2) {
+		printf("usefjds");
+		exit(0);
+	}
+	serv_port = atoi(argv[1]);
 
 	if ((listenid = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		printf("socket errro");
@@ -119,10 +125,10 @@ void download(const char* filename, int sockfd) {
 	int childsockfd;
 
 	if ((fp = fopen(filename, "r")) == NULL) {
-		printf("cannot open file!");
-		
+		printf("cannot open file!\n");
+		write(sockfd, error, sizeof(error));
 		//exit(0);
-		retrun;
+		return;
 	}
 again:
 	while ((n = fread(buf, 1, MAXLINE, fp)) > 0) {
@@ -156,7 +162,13 @@ void upload(const char* filename, int sockfd) {
 	}
 	if (n>1)
 	{
-		fwrite(recvline, 1, n, fp);
+		if (strcmp(recvline,"error")==0)
+		{
+			remove(filename);
+			return;
+		}
+		else
+			fwrite(recvline, 1, n, fp);
 	}
 	if (n < 0 && errno == EINTR)
 		goto again;
@@ -245,7 +257,7 @@ void sig_chid(int signo) {
 	pid_t pid;
 	int stat;
 	while ((pid = waitpid(-1, &stat, WNOHANG)) > 0)
-		printf("child:%d terminated", pid);
+		printf("child:%d terminated\n", pid);
 	return;
 }
 

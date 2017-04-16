@@ -9,7 +9,7 @@
 #include<errno.h>
 #include<stdlib.h>
 #include<unistd.h>
-#define SERV_PORT 8888
+//#define SERV_PORT 8888
 #define MAXLINE 2048
 void upload(const char*fp, int sockfd);
 void download(const char* filename,int sockfd);
@@ -19,10 +19,12 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char *path);
 int main(int argc, char **argv) {
 	int sockfd;                        //should be socket[5]
 	struct sockaddr_in servaddr;
-	/*if(argc!=2){
+	int SERV_PORT;
+	if(argc!=3){
 	printf("usefjds");
 	exit(0);
-	}*/
+	}
+	SERV_PORT = atoi(argv[2]);
 		sockfd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sockfd<0)
 		{
@@ -33,7 +35,8 @@ int main(int argc, char **argv) {
 		servaddr.sin_family = PF_INET;                   //change from AF_INET to PF_INET
 		servaddr.sin_port = htons(SERV_PORT);
 		//inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
-		inet_pton(AF_INET, "192.168.50.93", &servaddr.sin_addr);
+		//inet_pton(AF_INET, "192.168.50.93", &servaddr.sin_addr);
+		inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
 
 		if (connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
 			printf("connect error :%s (errno:%d)\n", strerror(errno), errno);
@@ -92,7 +95,14 @@ void download(const char* filename, int sockfd) {
 	if (n>1)
 	{
 		//fputs(recvline, stdout);
-		fwrite(recvline, 1, n, fp);
+		if (strcmp(recvline,"error")==0)
+		{
+			printf("no such file!\n");
+			remove(filename);
+			return;
+		}
+		else
+			fwrite(recvline, 1, n, fp);
 	}
 	if (n < 0 && errno == EINTR)
 		goto again;
@@ -110,9 +120,12 @@ void upload(const char* filename, int sockfd) {
 	FILE *fp;
 	ssize_t n;
 	char buf[MAXLINE];
+	const char error[6] = "error";
 	if ((fp = fopen(filename, "r")) == NULL){
-		printf("cannot open file!");
-		exit(0);
+		printf("cannot open file!\n");
+		write(sockfd, error, sizeof(error));
+		return;
+		//exit(0);
 	}
 	again:
 	while ((n = fread(buf, 1, MAXLINE, fp))>0) {

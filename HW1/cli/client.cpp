@@ -11,7 +11,6 @@
 #include<unistd.h>
 #define SERV_PORT 8888
 #define MAXLINE 2048
-void str_cli(FILE*fp, int sockfd);
 void upload(const char*fp, int sockfd);
 void download(const char* filename,int sockfd);
 void ls(int sockfd);
@@ -59,7 +58,6 @@ int main(int argc, char **argv) {
 			{
 				scanf("%s", strname);
 				cmd_Up(sockfd,str, strname,path);
-				//printf("after cmd_up the new path is %s\n",path);
 			}
 			else if (strcmp(str,"exit")==0)
 			{
@@ -70,12 +68,6 @@ int main(int argc, char **argv) {
 				printf("commander wrong!\n");
 			}
 		}
-
-
-
-		//ls(sockfd);
-		//download("text_download", sockfd);
-		//exit(0);
 		return 0;
 }
 
@@ -84,29 +76,23 @@ int main(int argc, char **argv) {
 void download(const char* filename, int sockfd) {
 	
 	char recvline[MAXLINE];
-	//while (fgets(sendline, MAXLINE, fp) != NULL) {
-	//	write(sockfd, sendline, strlen(sendline));
-	//	if (read(sockfd, recvline, strlen(sendline)) == 0) {
-	//		printf("sre_cli:error");
-	//		exit(0);
-
-	//	}
-	//	fputs(recvline, stdout);
-	//}
+	int n;
 	FILE* fp = fopen(filename, "w");
 	if (fp==NULL)
 	{
 		printf("open file error\n");
 		exit(0);
 	}
-	ssize_t n=2;
 	again:
-	while ((n=read(sockfd,recvline,MAXLINE))>0)
+	while ((n=read(sockfd,recvline,MAXLINE))==MAXLINE)    
 	{
 		//fputs(recvline, stdout);
-		//printf("%d", /*strlen(recvline)*/n);
-		//printf("%s\n", recvline);
-		fwrite(recvline, 1, /*strlen(recvline)*/n, fp);
+		fwrite(recvline, 1, n, fp);
+	}
+	if (n>1)
+	{
+		//fputs(recvline, stdout);
+		fwrite(recvline, 1, n, fp);
 	}
 	if (n < 0 && errno == EINTR)
 		goto again;
@@ -132,15 +118,14 @@ void upload(const char* filename, int sockfd) {
 	while ((n = fread(buf, 1, MAXLINE, fp))>0) {
 		write(sockfd, buf, n);
 	}
-	fclose(fp);
 	if (n < 0 && errno == EINTR)
 		goto again;
 	else if (n < 0)
 		printf("read error");
 	else
 		printf("Upload Complete!\n");
-	shutdown(sockfd, SHUT_WR);
-	//exit(0);
+	write(sockfd, buf, 1);
+	fclose(fp);
 	return;
 }
 
@@ -170,7 +155,6 @@ void ls(int sockfd) {
 }
 
 int Iscmd(char cmd[10]){
-	//	int i;
 	if (!strcmp(cmd, "cd") || !strcmp(cmd, "cdir") || !strcmp(cmd, "download") || !strcmp(cmd, "upload"))
 		return 1;
 	else
@@ -182,7 +166,6 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		int n;
 		char recvline[100];
 		send(sockfd, strname, 20, 0);
-		//printf("%s %s\n", str, strname);
 		n=read(sockfd, recvline, 100);
 		if (n==1)
 		{
@@ -208,12 +191,6 @@ void cmd_Up(int sockfd,char str[10], char strname[20],char* path) {
 		send(sockfd, strname, 20, 0);
 		upload(strname, sockfd);
 		return;
-	}/*
-	else
-	{
-		printf("error:");
-		return;
-	}*/
-
+	}
 }
 

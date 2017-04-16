@@ -14,7 +14,6 @@
 #define LISTENQ 1024
 #define MAXLINE 2048
 #define PATH_LENGTH 100
-//void str_echo(int sockfd);
 void download(const char* filename, int sockfd);
 void upload(const char* filename, int sockdf);
 void sig_chid(int signo);
@@ -60,7 +59,6 @@ int main()
 	while (1) {
 		clilen = sizeof(cliaddr);
 		connfd = accept(listenid, (struct sockaddr*)&cliaddr, &clilen);
-		//printf("%d\n", connfd);
 		if (connfd < 0) {
 			if (errno == EINTR)
 				continue;
@@ -80,11 +78,10 @@ int main()
 
 			while (1)
 			{
-				printf("waiting for new commander\n");
+				//printf("waiting for new commander\n");
 				char str[10] = { '\0' };
 				char strname[20] = { '\0' };
 				recv(connfd, str, 10, 0);         //»ñÈ¡Ö¸Áî done.
-				//printf("the str is %s\n", str);
 				if (strcmp(str, "ls") == 0)
 				{
 					ls(path, connfd);
@@ -95,12 +92,11 @@ int main()
 					close(connfd);
 					exit(0);
 					break;
-					//return 0;
 				}
 				else if (Iscmd(str))
 				{
 					recv(connfd, strname, 20, 0);
-					printf("%s  %s\n", str, strname);
+					//printf("%s  %s\n", str, strname);
 					cmd_Up(connfd, str, strname, path);
 				}
 				else
@@ -108,14 +104,7 @@ int main()
 					printf("commander wrong!\n");
 				}
 			}
-			//str_echo(connfd);
-			//path=changedir("Debug");
-			//ls(path,connfd);
-			//download("text", connfd);
-			//exit(0);
 		}
-		//printf("childpid:%d\n", childpid);
-		//close(connfd);
 
 	}
 	return 0;
@@ -125,24 +114,27 @@ int main()
 void download(const char* filename, int sockfd) {
 	FILE *fp;
 	ssize_t n;
+	const char error[6]="error";
 	char buf[MAXLINE];
 	int childsockfd;
-	//struct sockaddr_in clientaddr;
-	//socklen_t clientLen = sizeof(clientaddr);
+
 	if ((fp = fopen(filename, "r")) == NULL) {
 		printf("cannot open file!");
-		exit(0);
+		
+		//exit(0);
+		retrun;
 	}
 again:
 	while ((n = fread(buf, 1, MAXLINE, fp)) > 0) {
-		write(sockfd, buf, n);    //change
+		write(sockfd, buf, n);    
+		//printf("the fread count:%d\n", n);
 	}
 	if (n < 0 && errno == EINTR)
 		goto again;
 	else if (n < 0)
 		printf("str_echo:read error");
-	shutdown(sockfd, SHUT_WR);   //change
-	//exit(0);
+	//printf("done!\n"); 
+	write(sockfd, buf, 1);
 	fclose(fp);
 	return;
 }
@@ -158,11 +150,13 @@ void upload(const char* filename, int sockfd) {
 		exit(0);
 	}
 	again:
-	while ((n = read(sockfd, recvline, MAXLINE)) > 0)
+	while ((n = read(sockfd, recvline, MAXLINE)) ==MAXLINE)
 	{
-		//fputs(recvline, stdout);
-		//printf("%d", /*strlen(recvline)*/n);
-		fwrite(recvline, 1, /*strlen(recvline)*/n, fp);
+		fwrite(recvline, 1, n, fp);
+	}
+	if (n>1)
+	{
+		fwrite(recvline, 1, n, fp);
 	}
 	if (n < 0 && errno == EINTR)
 		goto again;
@@ -171,7 +165,6 @@ void upload(const char* filename, int sockfd) {
 	else
 		printf("Download Complete!\n");
 	fclose(fp);
-	//exit(0);
 	return;
 }
 
@@ -188,7 +181,6 @@ void ls(char* path, int connfd) {
 	{
 		printf("cannot open direactory.");
 		write(connfd, sendline, 2);
-		//exit(0);
 		return;
 	}
 	while ((ent = readdir(pDir)) != NULL)
@@ -214,13 +206,11 @@ int Iscmd(char cmd[10])
 }
 
 void cmd_Up(int connfd, char str[10], char strname[20], char* path) {
-	//printf("%s\n", path);
 	if (strcmp(str, "cd") == 0) {
 		char path_tmp[PATH_LENGTH];
 		strcpy(path_tmp, changedir(strname));
 		printf("%s\n", path_tmp);
 		if (strcmp(path_tmp, "error") == 0) {
-			//printf("error:%lu\n",strlen(path_tmp));
 			write(connfd, path_tmp, 1);
 		}
 		else {
@@ -234,15 +224,12 @@ void cmd_Up(int connfd, char str[10], char strname[20], char* path) {
 	else if (strcmp(str, "download") == 0)
 	{
 		printf("%s %s\n", str, strname);
-		//recv(connfd, str, 10, 0);
 		download(strname, connfd);
 		return;
 
 	}
 	else if (strcmp(str, "upload") == 0)
 	{
-		//printf("%s %s\n", str, strname);
-		//recv(connfd, str, 10, 0);
 		upload(strname, connfd);
 		return;
 	}
@@ -258,7 +245,6 @@ void sig_chid(int signo) {
 	pid_t pid;
 	int stat;
 	while ((pid = waitpid(-1, &stat, WNOHANG)) > 0)
-		//pid=waitpid(&stat);
 		printf("child:%d terminated", pid);
 	return;
 }
@@ -272,7 +258,6 @@ char* changedir(const char* strname) {
 	{
 		printf("change dir error: %s (errno:%d)\n", strerror(errno), errno);
 		return "error";
-		//exit(0);
 	}
 	getcwd(path, PATH_LENGTH);
 	return path;
